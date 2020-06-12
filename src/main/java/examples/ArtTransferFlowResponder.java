@@ -9,12 +9,12 @@ import net.corda.core.utilities.ProgressTracker;
 // message from `ArtTransferFlow.Initiator`.
 @InitiatedBy(ArtTransferFlowInitiator.class)
 public class ArtTransferFlowResponder extends FlowLogic<Void> {
-    private final FlowSession counterpartySession;
+    private final FlowSession othersession;
 
     // Responder flows always have a single constructor argument - a
     // `FlowSession` with the counterparty who initiated the flow.
     public ArtTransferFlowResponder(FlowSession counterpartySession) {
-        this.counterpartySession = counterpartySession;
+        this.othersession = counterpartySession;
     }
 
     private final ProgressTracker progressTracker = new ProgressTracker();
@@ -46,7 +46,7 @@ public class ArtTransferFlowResponder extends FlowLogic<Void> {
             }
         }
 
-        subFlow(new SignTxFlow(counterpartySession, SignTransactionFlow.tracker()));
+        subFlow(new SignTxFlow(othersession, SignTransactionFlow.tracker()));
 
         // Once the counterparty calls `FinalityFlow`, we will
         // automatically record the transaction if we are one of the

@@ -1,19 +1,14 @@
 package bootcamp;
 
-import examples.ArtContract;
-import examples.ArtState;
 import net.corda.core.contracts.CommandData;
 import net.corda.core.contracts.CommandWithParties;
 import net.corda.core.contracts.Contract;
 import net.corda.core.transactions.LedgerTransaction;
-import static net.corda.core.contracts.ContractsDSL.requireSingleCommand;    
-import static net.corda.core.contracts.ContractsDSL.requireThat;
-
+import static net.corda.core.contracts.ContractsDSL.requireSingleCommand;
 import java.security.PublicKey;
 import java.util.List;
 
-/* Our contract, governing how our state will evolve over time.
- * See src/main/java/examples/ArtContract.java for an example. */
+
 public class TokenContract implements Contract {
     public static String ID = "bootcamp.TokenContract";
 
@@ -24,29 +19,55 @@ public class TokenContract implements Contract {
         List<PublicKey> signers = cmd.getSigners();
 
         if (cmdType instanceof Commands.Generate) {
-            // Shape checks
-            if (tx.getOutputStates().size() != 0) throw new IllegalArgumentException("Token.Gen: No input expected");
-            if (tx.outputsOfType(TokenState.class).size() != 1) throw new IllegalArgumentException("Token.Gen: Output expected");
+//          Shape checks
+            if (tx.getInputStates().size() != 0) throw new IllegalArgumentException("Token.Gen: No input expected");
+            if (tx.outputsOfType(TokenState.class).size() != 1)
+                throw new IllegalArgumentException("Token.Gen: Output expected");
 
-            // Grabbing the transaction's contents TODO ggf. check if validation of State is required to avoid mismatching errors
+//          Tx content check
+            TokenState tokenOut = tx.outputsOfType(TokenState.class).get(0);
+
+            if (tokenOut.getValue() <= 0) throw new IllegalArgumentException("Token.Gen: Output - Illegal value");
+//          if (!(tokenOut.getIssuer() instanceof BankParty)) throw new IllegalArgumentException("Token.Gen: Issuer must be a Bank");
+//          if (tokenOut.getOwner() != tokenOut.getIssuer()) throw new IllegalArgumentException("Token.Gen: Cannot issue to others");
+
+//          Tx signers check
+            if (!signers.contains(tokenOut.getIssuer().getOwningKey()) || signers.size() != 1)
+                throw new IllegalArgumentException("Token.Gen: Missing issuer signature");
+
+        } else if (cmdType instanceof Commands.Transfer) {
+//          Shape checks
+            if (tx.inputsOfType(TokenState.class).size() != 1)
+                throw new IllegalArgumentException("Token.Trans: Input expected");
+            if (tx.outputsOfType(TokenState.class).size() != 1)
+                throw new IllegalArgumentException("Token.Trans: Output expected");
+
+//          Tx content check
             TokenState tokenIn = tx.inputsOfType(TokenState.class).get(0);
             TokenState tokenOut = tx.outputsOfType(TokenState.class).get(0);
 
-            // Checking the transaction's contents.
-            if (tokenOut.getValue() <= 0) throw new IllegalArgumentException("Token.Gen: Output - Illegal value");
-            // if (tokenOut.getIssuer() != BankParty) throw new IllegalArgumentException("Token.Gen: Issuer must be a Bank");
-            // if (tokenOut.getOwner() != tokenOut.getIssuer()) throw new IllegalArgumentException("Token.Gen: Cannot issue to others");
+            if (tokenOut.getValue() != tokenIn.getValue())
+                throw new IllegalArgumentException("Token.Trans: Value changed");
+            if (tokenOut.getOwner().equals(tokenIn.getOwner()))
+                throw new IllegalArgumentException("Token.Trans: No owner change");
+            if (tokenOut.getID() != tokenIn.getID())
+                throw new IllegalArgumentException("Token.Trans: ID changed");
+            if (!tokenOut.getIssuer().equals(tokenIn.getIssuer()))
+                throw new IllegalArgumentException("Token.Trans: Issuer changed");
 
-            // Checking the transaction's required signers.
-            if (!signers.contains(tokenOut.getIssuer().getOwningKey()))
-                throw new IllegalArgumentException("Token.Gen: Missing issuer signature");
+//          Tx signers check
+            if (!signers.contains(tokenIn.getIssuer().getOwningKey()))
+                throw new IllegalArgumentException("Token.Trans: Missing issuer signature");
+            if (!signers.contains(tokenIn.getOwner().getOwningKey()))
+                throw new IllegalArgumentException("Token.Trans: Missing owner signature");
+
         } else
             throw new IllegalArgumentException("Token: Unknown Command");
 
     }
 
-
     public interface Commands extends CommandData {
         class Generate implements Commands { }
+        class Transfer implements Commands { }
     }
 }
