@@ -8,16 +8,18 @@ import net.corda.core.transactions.TransactionBuilder;
 import net.corda.core.utilities.ProgressTracker;
 import net.corda.core.contracts.CommandData;
 
+import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.List;
+
 import static java.util.Collections.singletonList;
 
 @InitiatingFlow
 @StartableByRPC
-public class TokenIssueFlowInitiator extends FlowLogic<SignedTransaction> {
-    private final Party owner;
-    private final int amount;
+public class TokenGenerateFlowInitiator extends FlowLogic<SignedTransaction> {
+    private double amount;
 
-    public TokenIssueFlowInitiator(Party owner, int amount) {
-        this.owner = owner;
+    public TokenGenerateFlowInitiator(int amount) {
         this.amount = amount;
     }
 
@@ -35,30 +37,37 @@ public class TokenIssueFlowInitiator extends FlowLogic<SignedTransaction> {
         Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
         // We get a reference to our own identity.
         Party issuer = getOurIdentity();
+        List<PublicKey> signers = new ArrayList<PublicKey>();
+        signers.add(issuer.getOwningKey());
 
         /* ============================================================================
          *         TODO 1 - Create our TokenState to represent on-ledger tokens!
          * ===========================================================================*/
         // We create our new TokenState.
-        TokenState tokenState = null;
+        TokenState token = new TokenState(issuer, issuer, amount);
 
 
         /* ============================================================================
          *      TODO 3 - Build our token issuance transaction to update the ledger!
          * ===========================================================================*/
         // We build our transaction.
-        TransactionBuilder transactionBuilder = null;
+        TransactionBuilder txBuilder = new TransactionBuilder();
+        txBuilder
+                .setNotary(notary);
+        txBuilder
+                .addOutputState(token, "bootcamp.TokenContract")
+                .addCommand(new TokenContract.Commands.Generate(), signers);
 
         /* ============================================================================
          *          TODO 2 - Write our TokenContract to control token issuance!
          * ===========================================================================*/
         // We check our transaction is valid based on its contracts.
-        transactionBuilder.verify(getServiceHub());
+        txBuilder.verify(getServiceHub());
 
-        FlowSession session = initiateFlow(owner);
+        FlowSession session = initiateFlow(issuer);
 
         // We sign the transaction with our private key, making it immutable.
-        SignedTransaction signedTransaction = getServiceHub().signInitialTransaction(transactionBuilder);
+        SignedTransaction signedTransaction = getServiceHub().signInitialTransaction(txBuilder);
 
         // The counterparty signs the transaction
         SignedTransaction fullySignedTransaction = subFlow(new CollectSignaturesFlow(signedTransaction, singletonList(session)));
