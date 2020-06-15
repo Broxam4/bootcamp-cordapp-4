@@ -53,25 +53,15 @@ public class TokenGenerateFlowInitiator extends FlowLogic<SignedTransaction> {
         if (optMax.isPresent())
             tokenID = optMax.getAsInt();
 
-        /* ============================================================================
-         *         TODO 1 - Create our TokenState to represent on-ledger tokens!
-         * ===========================================================================*/
         // We create our new TokenState.
         TokenState token = new TokenState(tokenID + 1, issuer, issuer, amount);
 
-
-        /* ============================================================================
-         *      TODO 3 - Build our token issuance transaction to update the ledger!
-         * ===========================================================================*/
         // We build our transaction.
         TransactionBuilder txBuilder = new TransactionBuilder(notary);
         txBuilder
                 .addOutputState(token, TokenContract.ID)
                 .addCommand(new TokenContract.Commands.Generate(), signers);
 
-        /* ============================================================================
-         *          TODO 2 - Write our TokenContract to control token issuance!
-         * ===========================================================================*/
         // We check our transaction is valid based on its contracts.
         txBuilder.verify(getServiceHub());
 

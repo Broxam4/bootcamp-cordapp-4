@@ -23,10 +23,10 @@ public class TokenTransferFlowInitiator extends FlowLogic<SignedTransaction> {
     private String s_issuer;
     private String s_newOwner;
 
-    public TokenTransferFlowInitiator(int id, String s_issuer, String s_newOwner) {
+    public TokenTransferFlowInitiator(int id, String issuer, String newOwner) {
         this.id = id;
-        this.s_issuer = s_issuer;
-        this.s_newOwner = s_newOwner;
+        s_issuer = issuer;
+        s_newOwner = newOwner;
     }
 
     private final ProgressTracker progressTracker = new ProgressTracker();
@@ -43,11 +43,11 @@ public class TokenTransferFlowInitiator extends FlowLogic<SignedTransaction> {
         Party notary = getServiceHub().getNetworkMapCache().getNotaryIdentities().get(0);
 
 //        resolve issuer and newOwner to parties
-        Set<Party> issuees = getServiceHub().getIdentityService().partiesFromName(s_issuer, true);
+        Set<Party> issuees = getServiceHub().getIdentityService().partiesFromName(s_issuer, false);
         if (issuees.size() != 1)
             throw new IllegalArgumentException("Token.Transfer: Issuer not identifiable");
         Party issuer = issuees.iterator().next();
-        issuees = getServiceHub().getIdentityService().partiesFromName(s_newOwner, true);
+        issuees = getServiceHub().getIdentityService().partiesFromName(s_newOwner, false);
         if (issuees.size() != 1)
             throw new IllegalArgumentException("Token.Transfer: newOwner not identifiable");
         Party newOwner = issuees.iterator().next();
