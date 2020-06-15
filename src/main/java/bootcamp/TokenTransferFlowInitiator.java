@@ -72,7 +72,7 @@ public class TokenTransferFlowInitiator extends FlowLogic<SignedTransaction> {
 //        prepare list of signers
         List<PublicKey> signers = new ArrayList<PublicKey>();
         signers.add(issuer.getOwningKey());
-        signers.add(newOwner.getOwningKey());
+        signers.add(inputToken.getOwner().getOwningKey());
 
 //        prepare new token for ledger
         TokenState token = new TokenState(
